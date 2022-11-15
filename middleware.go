@@ -8,15 +8,18 @@ import (
 	"path/filepath"
 )
 
+func LogRequest(req *http.Request) {
+	if req.Header.Get("X-Real-IP") != "" {
+		req.RemoteAddr = req.Header.Get("X-Real-IP")
+	}
+	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
+	log.Printf("[http] %s %s %s", ip, req.Method, req.URL)
+}
+
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		next.ServeHTTP(w, req)
-
-		if req.Header.Get("X-Real-IP") != "" {
-			req.RemoteAddr = req.Header.Get("X-Real-IP")
-		}
-		ip, _, _ := net.SplitHostPort(req.RemoteAddr)
-		log.Printf("[http] %s %s %s", ip, req.Method, req.URL)
+		LogRequest(req)
 	})
 }
 

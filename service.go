@@ -17,7 +17,7 @@ import (
 var registerShutdownChanMutex sync.Mutex
 
 type Service struct {
-	Router       *http.ServeMux
+	Router       http.Handler
 	ShutdownFunc func()
 	Middleware   func(http.Handler) http.Handler
 
@@ -40,7 +40,7 @@ func Init(address string, port int) *Service {
 
 	var service Service
 
-	service.Router = http.NewServeMux()
+	// service.Router = http.NewServeMux()
 	service.port = port
 	service.address = address
 
