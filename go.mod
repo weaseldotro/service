@@ -1,3 +1,3 @@
-module github.com/weaseldotro/service
+module github.com/mategvo/service
 
 go 1.19
