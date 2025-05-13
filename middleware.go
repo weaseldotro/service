@@ -1,7 +1,7 @@
 package service
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -13,7 +13,7 @@ func LogRequest(req *http.Request) {
 		req.RemoteAddr = req.Header.Get("X-Real-IP")
 	}
 	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
-	log.Printf("[http] %s %s %s", ip, req.Method, req.URL)
+	slog.Info("HTTP request", "IP", ip, "method", req.Method, "URL", req.URL)
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
@@ -38,12 +38,10 @@ func SPAHandler(w http.ResponseWriter, r *http.Request) {
 	if path == "." {
 		// handle root
 		if _, err := os.Stat("index.html"); !os.IsNotExist(err) {
-			log.Printf("path %s handle root index", path)
 			http.ServeFile(w, r, "index.html")
 			return
 		}
 
-		// log.Infof("path %s handle root default", path)
 		http.ServeFile(w, r, "./default.html")
 		return
 	}
@@ -55,33 +53,27 @@ func SPAHandler(w http.ResponseWriter, r *http.Request) {
 
 	fileInfo, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		// log.Infof("path %s handle root default", path)
 		http.ServeFile(w, r, "./default.html")
 		return
 	}
 
 	if fileInfo.IsDir() {
 		if _, err := os.Stat(path + "/index.html"); os.IsNotExist(err) {
-			// log.Infof("path %s handle dir default", path)
 			http.ServeFile(w, r, "./default.html")
 			return
 		}
 
-		// log.Infof("path %s handle dir index", path)
 		http.ServeFile(w, r, path+"/index.html")
 		return
 	}
 
 	if os.IsNotExist(err) {
-		// log.Infof("path %s handle default", path)
 		http.ServeFile(w, r, "./default.html")
 		return
 	} else if err != nil {
-		// log.Infof("path %s cannot handle, err %s", path, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// log.Infof("path %s handle static", path)
 	http.ServeFile(w, r, path)
 }

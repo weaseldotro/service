@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -67,7 +68,7 @@ func (service *Service) UnregisterShutdownChan(ch chan struct{}) {
 	registerShutdownChanMutex.Lock()
 	for i, c := range service.shutdownChans {
 		if c == ch {
-			service.shutdownChans = append(service.shutdownChans[:i], service.shutdownChans[i+1:]...)
+			service.shutdownChans = slices.Delete(service.shutdownChans, i, i+1)
 			break
 		}
 	}
@@ -88,9 +89,10 @@ func (service *Service) Run() {
 		if address == "" {
 			address = strings.Join(getLocalIPs(), ", ")
 		}
-		log.Printf("listening on port %d address: %s", service.port, address)
+		slog.Info("listening to requests", "port", service.port, "address", address)
 		if err := service.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("error on listen:%+s\n", err)
+			slog.Error("could not listen", "error", err)
+			os.Exit(1)
 		}
 	}()
 }
@@ -100,7 +102,7 @@ func (service *Service) WaitForStop() {
 	signal.Notify(service.signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	<-service.signalChan
-	log.Println("received shutdown signal, stopping the service")
+	slog.Info("received shutdown signal, stopping the service")
 
 	service.Cleanup()
 	atomic.StoreUint32(&service.isRunning, 0)
@@ -125,5 +127,5 @@ func (service *Service) Cleanup() {
 	}
 
 	service.server.Shutdown(context.Background())
-	log.Println("service stopped")
+	slog.Info("service stopped")
 }
